@@ -9,4 +9,4 @@
  * - UserMapper.java (프로시저 호출)
  * - CargoMapper.java (복잡한 쿼리)
  */
-package com.aact.caps.repository.mybatis;
+package com.aact.invoice.caps.repository.mybatis;

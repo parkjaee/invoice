@@ -8,4 +8,4 @@
  * - User.java
  * - Cargo.java
  */
-package com.aact.caps.entity;
+package com.aact.invoice.caps.entity;

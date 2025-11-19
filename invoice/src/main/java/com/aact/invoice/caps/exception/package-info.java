@@ -8,4 +8,4 @@
  * - CapsExceptionHandler.java
  * - UserNotFoundException.java
  */
-package com.aact.caps.exception;
+package com.aact.invoice.caps.exception;

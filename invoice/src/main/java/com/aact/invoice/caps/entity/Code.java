@@ -1,13 +1,14 @@
-package com.aact.caps.entity;
+package com.aact.invoice.caps.entity;
 
 import jakarta.persistence.*;
 
 /**
  * 공통 코드 엔티티
  * 테이블: CM_CODE (또는 해당 코드 테이블)
+ * TODO: CM_CODE 테이블이 생성되면 @Entity 주석 해제
  */
-@Entity
-@Table(name = "CM_CODE")
+//@Entity
+//@Table(name = "CM_CODE")
 public class Code {
 
     @Id

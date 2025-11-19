@@ -1,70 +1,92 @@
-package com.aact.caps.service;
+package com.aact.invoice.caps.service;
 
-import com.aact.caps.dto.CodeDto;
-import com.aact.caps.entity.Code;
-import com.aact.caps.repository.jpa.CodeRepository;
-import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.aact.invoice.caps.dto.CodeDto;
+import com.aact.invoice.caps.dto.ProcResult;
+import com.aact.invoice.caps.dto.request.RequestMeta;
+import com.aact.invoice.caps.repository.mybatis.CodeMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import java.sql.ResultSet;
+import java.util.*;
 
-/**
- * 공통 코드 서비스
- */
 @Service
-@Transactional(readOnly = true)
+@Transactional
 public class CodeService {
 
-    @Autowired
-    private CodeRepository codeRepository;
+    private final CodeMapper codeMapper;
 
-    /**
-     * 코드 타입별 코드 목록 조회 (사용 중인 것만)
-     */
-    public List<CodeDto> getCodesByType(String codeType) {
-        List<Code> codes = codeRepository.findByCodeTypeAndUseYn(codeType);
-        return codes.stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+    public CodeService(CodeMapper codeMapper) {
+        this.codeMapper = codeMapper;
     }
 
     /**
-     * 터미널 코드 목록 조회
+     * 코드 조회 (PCM_CODE_P010_001)
+     *
+     * @param codeType 코드 타입 (TRMCD, DPTCD, POSTK, CAPS)
+     * @param codeCode 코드 (optional, 빈 문자열 가능)
+     * @param meta     요청 메타 정보
+     * @return 코드 목록
      */
-    public List<CodeDto> getTerminals() {
-        return getCodesByType("TRMCD");
+    public ProcResult<List<CodeDto>> getCodes(String codeType, String codeCode, RequestMeta meta) {
+
+        Map<String, Object> params = new HashMap<>();
+
+        // IN 파라미터
+        params.put("I_CODE_TYPE", codeType);
+        params.put("I_CODE_CODE", codeCode != null ? codeCode : "");
+        params.put("I_LANGUAGE_CODE", "KOR");
+        params.put("I_PROGRESS_GUID", meta.progressGuid());
+        params.put("I_REQUEST_USER_ID", meta.requestUserId());
+        params.put("I_REQUEST_IP_ADDRESS", meta.requestIp());
+        params.put("I_REQUEST_PROGRAM_ID", meta.programId());
+
+        // OUT 파라미터
+        params.put("O_RESULT_CURSOR", null);
+        params.put("O_ERROR_FLAG", null);
+        params.put("O_RETURN_CODE", null);
+        params.put("O_RETURN_MESSAGE", null);
+
+        // 프로시저 호출
+        codeMapper.callGetCodes(params);
+
+        // 결과 추출
+        String errorFlag = (String) params.get("O_ERROR_FLAG");
+        String returnCode = (String) params.get("O_RETURN_CODE");
+        String returnMessage = (String) params.get("O_RETURN_MESSAGE");
+
+        @SuppressWarnings("unchecked")
+        List<CodeDto> codes = (List<CodeDto>) params.getOrDefault("O_RESULT_CURSOR", new ArrayList<>());
+
+        if ("Y".equalsIgnoreCase(errorFlag)) {
+            throw new ProcCallException(returnCode, returnMessage);
+        }
+
+        return new ProcResult<>(codes, returnCode, returnMessage, false);
     }
 
     /**
-     * 부서 코드 목록 조회
+     * 터미널 코드 조회 (프로시저 사용)
      */
-    public List<CodeDto> getDepartments() {
-        return getCodesByType("DPTCD");
+    public ProcResult<List<CodeDto>> getTerminals(RequestMeta meta) {
+        return getCodes("TRMCD", "", meta);
     }
 
-    /**
-     * 직급 코드 목록 조회
-     */
-    public List<CodeDto> getPositions() {
-        return getCodesByType("POSTK");
-    }
+    // 부서/직급 코드는 userInfoMapper에서 JOIN으로 조회하므로 제거됨
 
     /**
-     * CAPS 사용자 목록 조회
+     * 프로시저 호출 예외
      */
-    public List<CodeDto> getCAPSList() {
-        return getCodesByType("CAPS");
-    }
+    public static class ProcCallException extends RuntimeException {
+        private final String code;
 
-    /**
-     * Entity를 DTO로 변환
-     */
-    private CodeDto convertToDto(Code code) {
-        CodeDto dto = new CodeDto();
-        BeanUtils.copyProperties(code, dto);
-        return dto;
+        public ProcCallException(String code, String message) {
+            super(message);
+            this.code = code;
+        }
+
+        public String getCode() {
+            return code;
+        }
     }
 }

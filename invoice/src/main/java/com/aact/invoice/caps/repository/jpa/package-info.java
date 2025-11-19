@@ -8,4 +8,4 @@
  * - UserRepository.java
  * - CargoRepository.java
  */
-package com.aact.caps.repository.jpa;
+package com.aact.invoice.caps.repository.jpa;

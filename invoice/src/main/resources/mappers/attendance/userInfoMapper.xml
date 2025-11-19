@@ -1,0 +1,47 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aact.invoice.attendance.repository.mybatis.UserInfoMapper">
+
+    <resultMap id="UserCapsMap" type="com.aact.invoice.caps.dto.UserDto">
+        <result property="userSid"           column="USER_SID"/>
+        <result property="userId"            column="USER_ID"/>
+        <result property="userName"          column="USER_NAME"/>
+        <result property="departmentCode"    column="DEPARTMENT_CODE"/>
+        <result property="departmentName"    column="DEPARTMENT_NAME"/>
+        <result property="positionCode"      column="POSITION_CODE"/>
+        <result property="positionName"      column="POSITION_NAME"/>
+    </resultMap>
+
+    <select id="callGetUsers" resultMap="UserCapsMap" parameterType="map">
+        SELECT
+            u.id as USER_SID,
+            u.name as USER_NAME,
+            u.idno as USER_ID,
+            u.company as DEPARTMENT_CODE,
+            u.dept as POSITION_CODE,
+            CASE
+                WHEN p.n_name3th IS NOT NULL AND LTRIM(RTRIM(p.n_name3th)) != '' THEN p.n_name1st + ' > ' + p.n_name2nd + ' > ' + p.n_name3th
+                WHEN p.n_name2nd IS NOT NULL AND LTRIM(RTRIM(p.n_name2nd)) != '' THEN p.n_name1st + ' > ' + p.n_name2nd
+                ELSE p.n_name1st
+            END as DEPARTMENT_NAME,
+            pos.name as POSITION_NAME
+        FROM tuser u
+        LEFT JOIN nPart p ON u.company = p.c_code
+        LEFT JOIN nPosition pos ON u.dept = pos.id
+        WHERE 1=1
+        <if test="I_DEPARTMENT_CODE != null and I_DEPARTMENT_CODE != ''">
+            AND u.company = #{I_DEPARTMENT_CODE}
+        </if>
+        <if test="I_POSITION_CODE != null and I_POSITION_CODE != ''">
+            AND u.dept = #{I_POSITION_CODE}
+        </if>
+        <if test="I_USER_SID != null and I_USER_SID != ''">
+            AND u.id LIKE '%' + #{I_USER_SID} + '%'
+        </if>
+        <if test="I_USER_NAME != null and I_USER_NAME != ''">
+            AND u.name LIKE '%' + #{I_USER_NAME} + '%'
+        </if>
+        ORDER BY u.id
+    </select>
+</mapper>

@@ -1,97 +1,66 @@
-package com.aact.caps.controller;
+package com.aact.invoice.caps.controller;
 
-import com.aact.caps.dto.CodeDto;
-import com.aact.caps.service.CodeService;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.aact.invoice.caps.dto.CodeDto;
+import com.aact.invoice.caps.dto.ProcResult;
+import com.aact.invoice.caps.dto.request.RequestMeta;
+import com.aact.invoice.caps.service.CodeService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
- * 공통 코드 REST Controller
+ * 코드 관리 REST API
  */
 @RestController
 @RequestMapping("/api/caps/codes")
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000"})
+@CrossOrigin(origins = {"http://localhost:5174", "http://localhost:3000","http://192.168.200.152:8080"})
 public class CodeController {
 
-    @Autowired
-    private CodeService codeService;
+    private final CodeService codeService;
 
-    /**
-     * 코드 타입별 코드 목록 조회
-     * GET /api/caps/codes/{codeType}
-     */
-    @GetMapping("/{codeType}")
-    public ResponseEntity<List<CodeDto>> getCodesByType(@PathVariable String codeType) {
-        try {
-            List<CodeDto> codes = codeService.getCodesByType(codeType);
-            return ResponseEntity.ok(codes);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+    public CodeController(CodeService codeService) {
+        this.codeService = codeService;
     }
 
     /**
-     * 터미널 코드 목록 조회
+     * 터미널 코드 조회 (프로시저 사용)
      * GET /api/caps/codes/terminals
      */
     @GetMapping("/terminals")
-    public ResponseEntity<List<CodeDto>> getTerminals() {
-        try {
-            List<CodeDto> codes = codeService.getTerminals();
-            return ResponseEntity.ok(codes);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+    public ResponseEntity<List<CodeDto>> getTerminals(HttpServletRequest request) {
+        RequestMeta meta = new RequestMeta(
+                "SYSTEM",
+                request.getRemoteAddr(),
+                "CODE_API",
+                UUID.randomUUID().toString()
+        );
+        ProcResult<List<CodeDto>> result = codeService.getTerminals(meta);
+        return ResponseEntity.ok(result.data());
     }
 
-    /**
-     * 부서 코드 목록 조회
-     * GET /api/caps/codes/departments
-     */
-    @GetMapping("/departments")
-    public ResponseEntity<List<CodeDto>> getDepartments() {
-        try {
-            List<CodeDto> codes = codeService.getDepartments();
-            return ResponseEntity.ok(codes);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
+    // 부서/직급 코드는 사용자 조회 시 JOIN으로 가져오므로 엔드포인트 제거됨
+    // /departments, /positions, /capsids 제거
 
     /**
-     * 직급 코드 목록 조회
-     * GET /api/caps/codes/positions
+     * 범용 코드 조회 (코드 타입 지정)
+     * GET /api/caps/codes?type=TRMCD
      */
-    @GetMapping("/positions")
-    public ResponseEntity<List<CodeDto>> getPositions() {
-        try {
-            List<CodeDto> codes = codeService.getPositions();
-            return ResponseEntity.ok(codes);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
-    /**
-     * CAPS 사용자 목록 조회
-     * GET /api/caps/codes/capslist
-     */
-    @GetMapping("/capslist")
-    public ResponseEntity<List<CodeDto>> getCAPSList() {
-        try {
-            List<CodeDto> codes = codeService.getCAPSList();
-            return ResponseEntity.ok(codes);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+    @GetMapping
+    public ResponseEntity<List<CodeDto>> getCodes(
+            @RequestParam String type,
+            @RequestParam(required = false, defaultValue = "") String code,
+            HttpServletRequest request) {
+        RequestMeta meta = new RequestMeta(
+                "SYSTEM",
+                request.getRemoteAddr(),
+                "CODE_API",
+                UUID.randomUUID().toString()
+        );
+        ProcResult<List<CodeDto>> result = codeService.getCodes(type, code, meta);
+        return ResponseEntity.ok(result.data());
     }
 }

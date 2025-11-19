@@ -9,4 +9,4 @@
  * - request: 요청 DTO
  * - response: 응답 DTO
  */
-package com.aact.caps.dto;
+package com.aact.invoice.caps.dto;

@@ -15,4 +15,4 @@
  * - exception: 예외 처리
  * - util: 유틸리티
  */
-package com.aact.caps;
+package com.aact.invoice.caps;

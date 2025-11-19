@@ -1,4 +1,4 @@
-package com.aact.caps.entity;
+package com.aact.invoice.caps.entity;
 
 import lombok.Data;
 import jakarta.persistence.*;
@@ -6,7 +6,6 @@ import java.time.LocalDateTime;
 
 /**
  * CAPS 사용자 엔티티
- * 테이블: CM_USER (또는 해당 사용자 테이블)
  */
 @Data
 public class User {

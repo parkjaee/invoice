@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="SqlDialectMappings">
-    <file url="file://$PROJECT_DIR$/invoice/src/main/resources/mappers/userInfoMapper.xml" dialect="BigQuery" />
+    <file url="file://$PROJECT_DIR$/invoice/src/main/resources/mappers/attendance/attendanceMapper.xml" dialect="BigQuery" />
+    <file url="file://$PROJECT_DIR$/invoice/src/main/resources/mappers/caps/codeMapper.xml" dialect="BigQuery" />
   </component>
 </project>

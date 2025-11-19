@@ -1,4 +1,4 @@
-package com.aact.caps.dto;
+package com.aact.invoice.caps.dto;
 
 /**
  * 공통 코드 DTO

@@ -8,4 +8,4 @@
  * - CapsDateUtil.java
  * - CapsStringUtil.java
  */
-package com.aact.caps.util;
+package com.aact.invoice.caps.util;

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8080/api/caps';
+const API_BASE_URL = 'http://localhost:8081/api/caps';
 
 /**
  * CAPS 사용자 관리 API 서비스
@@ -12,6 +12,10 @@ const userService = {
    * @param {string} params.terminalCode - 터미널 코드
    * @param {string} params.fromDate - 시작 날짜 (YYYY-MM-DD)
    * @param {string} params.toDate - 종료 날짜 (YYYY-MM-DD)
+   * @param {string} params.userName - 사용자 이름
+   * @param {string} params.userId - 사용자 사번
+   * @param {boolean} params.showAttended - 출근한 사람 표시 여부
+   * @param {boolean} params.showNotAttended - 미출근한 사람 표시 여부
    * @returns {Promise<Array>} 사용자 목록
    */
   async getUsers(params = {}) {
@@ -20,7 +24,12 @@ const userService = {
         params: {
           terminalCode: params.terminalCode || '',
           fromDate: params.fromDate || '',
-          toDate: params.toDate || ''
+          toDate: params.toDate || '',
+          userName: params.userName || '',
+          userId: params.userId || '',
+          userSid: params.userSid || '',
+          showAttended: params.showAttended !== undefined ? params.showAttended : true,
+          showNotAttended: params.showNotAttended !== undefined ? params.showNotAttended : true
         }
       });
       return response.data;

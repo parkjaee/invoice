@@ -8,4 +8,4 @@
  * - CapsConfig.java
  * - CapsSecurityConfig.java (필요 시)
  */
-package com.aact.caps.config;
+package com.aact.invoice.caps.config;

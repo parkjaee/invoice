@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aact.invoice.caps.repository.mybatis.CodeMapper">
+
+    <resultMap id="CodeMap" type="com.aact.invoice.caps.dto.CodeDto">
+        <id     property="codeSid"      column="CODE_SID"/>
+        <result property="codeType"     column="CODE_TYPE"/>
+        <result property="codeCode"     column="CODE_CODE"/>
+        <result property="codeName"     column="CODE_NAME"/>
+        <result property="codeNameEng"  column="CODE_NAME_ENG"/>
+        <result property="sortOrder"    column="SORT_ORDER"/>
+        <result property="useYn"        column="USE_YN"/>
+    </resultMap>
+
+    <select id="callGetCodes" statementType="CALLABLE" parameterType="map">
+        { call PCM_CODE_P010_001(
+                #{I_CODE_TYPE,           mode=IN,  jdbcType=VARCHAR},
+                #{I_CODE_CODE,           mode=IN,  jdbcType=VARCHAR},
+                #{I_LANGUAGE_CODE,       mode=IN,  jdbcType=VARCHAR},
+                #{I_PROGRESS_GUID,       mode=IN,  jdbcType=VARCHAR},
+                #{I_REQUEST_USER_ID,     mode=IN,  jdbcType=VARCHAR},
+                #{I_REQUEST_IP_ADDRESS,  mode=IN,  jdbcType=VARCHAR},
+                #{I_REQUEST_PROGRAM_ID,  mode=IN,  jdbcType=VARCHAR},
+
+                #{O_RESULT_CURSOR,  mode=OUT, jdbcType=CURSOR, javaType=ResultSet, resultMap=CodeMap},
+                #{O_ERROR_FLAG,     mode=OUT, jdbcType=VARCHAR},
+                #{O_RETURN_CODE,    mode=OUT, jdbcType=VARCHAR},
+                #{O_RETURN_MESSAGE, mode=OUT, jdbcType=VARCHAR}
+               )}
+    </select>
+</mapper>

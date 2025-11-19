@@ -1,22 +1,15 @@
-package com.aact.caps.service;
+package com.aact.invoice.caps.service;
 
-import com.aact.caps.dto.ProcResult;
-import com.aact.caps.dto.UserDto;
-import com.aact.caps.dto.request.RequestMeta;
-import com.aact.caps.dto.request.UserSearchRequest;
-import com.aact.caps.entity.User;
-import com.aact.caps.repository.jpa.UserRepository;
-import com.aact.caps.repository.mybatis.userInfoMapper;
-import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.aact.invoice.attendance.repository.mybatis.UserInfoMapper;
+import com.aact.invoice.attendance.service.AttendanceService;
+import com.aact.invoice.caps.dto.UserDto;
+import com.aact.invoice.caps.dto.request.UserSearchRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -26,156 +19,159 @@ import java.util.stream.Collectors;
 @Service
 public class UserService {
 
-    private final userInfoMapper userInfoMapper;
+    private final UserInfoMapper userInfoMapper;
+    private final AttendanceService attendanceService;
 
-    public UserService(userInfoMapper userInfoMapper) {
+    public UserService(UserInfoMapper userInfoMapper, AttendanceService attendanceService) {
         this.userInfoMapper = userInfoMapper;
+        this.attendanceService = attendanceService;
     }
 
     @Transactional(readOnly = true)
-    public ProcResult<List<UserDto>> listUsers(UserSearchRequest req, RequestMeta meta) {
+    public List<UserDto> listUsers(UserSearchRequest req) {
+        // 1단계: MSSQL에서 모든 사용자 정보 조회
         Map<String, Object> p = new HashMap<>();
 
-        // IN 파라미터
-        p.put("I_COMPANY_CODE",         req.companyCode());
-        p.put("I_BRANCH_CODE",         req.branchCode());
-        p.put("I_DEPARTMENT_CODE",         req.departmentCode());
-        p.put("I_POSITION_CODE",         req.positionCode());
-        p.put("I_USER_ID",         req.userId());
-        p.put("I_USER_NAME",         req.userName());
-        p.put("I_USABLE_FLAG",         req.usableFlag());
-        p.put("I_LANGUAGE_CODE",         "KOR");
-        p.put("I_PROGRESS_GUID",         meta.progressGuid());
-        p.put("I_REQUEST_USER_ID",         meta.requestUserId());
-        p.put("I_REQUEST_IP_ADDRESS",         meta.requestIp());
-        p.put("I_REQUEST_PROGRAM_ID",         meta.programId());
+        List<UserDto> allUsers = userInfoMapper.callGetUsers(p);
 
-        // CALL
-        userInfoMapper.callGetUsers(p);
+        System.out.println("=== 1단계: MSSQL 조회 결과 ===");
+        System.out.println("전체 사용자 수: " + allUsers.size());
+        // 처음 3명 샘플 출력
+        allUsers.stream().limit(3).forEach(u ->
+            System.out.println("  - " + u.getUserId() + " / " + u.getUserName() + " / " + u.getDepartmentName() + " / " + u.getPositionName())
+        );
 
-        // OUT
-        String err = (String) p.get("O_ERROR_FLAG");
-        String code = (String) p.get("O_RETURN_CODE");
-        String msg = (String) p.get("O_RETURN_MSG");
+        // 2단계: 이름/사번 검색 필터 먼저 적용
+        List<UserDto> filteredUsers = new java.util.ArrayList<>();
+        for (UserDto user : allUsers) {
+            String userId = user.getUserId();
+            String userName = user.getUserName() != null ? user.getUserName() : "";
 
+            // 사용자 이름/사번 검색 필터 적용
+            boolean matchesFilter = true;
+            if (req.userId() != null && !req.userId().trim().isEmpty()) {
+                if (!userId.contains(req.userId().trim())) {
+                    matchesFilter = false;
+                }
+            }
+            if (req.userName() != null && !req.userName().trim().isEmpty()) {
+                if (!userName.contains(req.userName().trim())) {
+                    matchesFilter = false;
+                }
+            }
 
-        @SuppressWarnings("unchecked")
-        List<UserDto> rows = (List<UserDto>) p.getOrDefault("O_RESULT_CURSOR",List.of());
-
-        if ("Y".equalsIgnoreCase(err)) {
-            throw new ProcCallException(code, msg);
+            if (matchesFilter) {
+                filteredUsers.add(user);
+            }
         }
-        return new ProcResult<>(rows, code, msg, false);
+
+        System.out.println("=== 2단계: 검색 필터 적용 ===");
+        System.out.println("필터 적용 후 사용자 수: " + filteredUsers.size());
+
+        if (filteredUsers.isEmpty()) {
+            System.out.println("검색 조건에 맞는 사용자가 없습니다.");
+            return List.of();
+        }
+
+        // 3단계: 필터링된 사용자의 사번으로 MSSQL 출퇴근 기록 조회
+        List<String> idnoList = filteredUsers.stream()
+                .map(UserDto::getUserId)
+                .filter(id -> id != null && !id.isEmpty())
+                .collect(Collectors.toList());
+
+        System.out.println("=== 3단계: 출퇴근 기록 조회 ===");
+        Map<String, Map<String, AttendanceService.AttendanceTimes>> attendanceMap;
+        try {
+            attendanceMap = attendanceService.getLatestAttendanceMap(idnoList, req.fromDate(), req.toDate());
+            System.out.println("출퇴근 기록이 있는 사원 수: " + attendanceMap.size());
+        } catch (Exception e) {
+            System.err.println("출퇴근 기록 조회 실패: " + e.getMessage());
+            e.printStackTrace();
+            attendanceMap = new HashMap<>();
+        }
+
+        System.out.println("=== 4단계: 날짜별 행 확장 ===");
+        // 기본값 설정
+        boolean showAttended = req.showAttended() != null ? req.showAttended() : true;
+        boolean showNotAttended = req.showNotAttended() != null ? req.showNotAttended() : true;
+        System.out.println("출근 표시: " + showAttended + ", 미출근 표시: " + showNotAttended);
+
+        List<UserDto> expandedRows = new java.util.ArrayList<>();
+
+        for (UserDto user : filteredUsers) {
+            String userId = user.getUserId();
+
+            // 출퇴근 기록 확인
+            Map<String, AttendanceService.AttendanceTimes> dateMap = attendanceMap.get(userId);
+            boolean hasAttendance = (dateMap != null && !dateMap.isEmpty());
+
+            if (hasAttendance) {
+                // 출퇴근 기록이 있는 경우
+                if (!showAttended) {
+                    continue;  // 출근한 사람 표시 안함
+                }
+
+                // 날짜별로 복제
+                for (Map.Entry<String, AttendanceService.AttendanceTimes> entry : dateMap.entrySet()) {
+                    String date = entry.getKey();  // YYYYMMDD
+                    AttendanceService.AttendanceTimes times = entry.getValue();
+
+                    UserDto clonedUser = cloneUser(user);
+                    clonedUser.setAttendanceDate(date);
+                    clonedUser.setUserCheckin(times.getCheckinTime());
+                    clonedUser.setUserCheckout(times.getCheckoutTime());
+
+                    expandedRows.add(clonedUser);
+                }
+            } else {
+                // 출퇴근 기록이 없는 경우
+                if (!showNotAttended) {
+                    continue;  // 미출근한 사람 표시 안함
+                }
+
+                // 날짜 없이 한 행 추가
+                UserDto clonedUser = cloneUser(user);
+                clonedUser.setAttendanceDate("");
+                clonedUser.setUserCheckin("");
+                clonedUser.setUserCheckout("");
+                expandedRows.add(clonedUser);
+            }
+        }
+
+        // 5단계: 날짜 내림차순, 사번 오름차순 정렬
+        expandedRows.sort((a, b) -> {
+            String dateA = a.getAttendanceDate() != null ? a.getAttendanceDate() : "";
+            String dateB = b.getAttendanceDate() != null ? b.getAttendanceDate() : "";
+            int dateCompare = dateA.compareTo(dateB);  // 날짜 내림차순
+
+            if (dateCompare != 0) {
+                return dateCompare;
+            }
+
+            String idA = a.getUserId() != null ? a.getUserId() : "";
+            String idB = b.getUserId() != null ? b.getUserId() : "";
+            return idA.compareTo(idB);  // 사번 오름차순
+        });
+
+        System.out.println("=== 5단계: 최종 결과 ===");
+        System.out.println("최종 결과 행 수: " + expandedRows.size());
+        System.out.println("(사용자 " + filteredUsers.size() + "명 → 날짜별 확장 → " + expandedRows.size() + "행)");
+
+        return expandedRows;
     }
 
-
-    public static class ProcCallException extends RuntimeException {
-        private final String code;
-        public ProcCallException(String code, String message) { super(message); this.code = code;}
-        public String getCode() { return code; }
+    /**
+     * UserDto 객체 복제
+     */
+    private UserDto cloneUser(UserDto source) {
+        UserDto cloned = new UserDto();
+        cloned.setUserSid(source.getUserSid());
+        cloned.setUserId(source.getUserId());
+        cloned.setUserName(source.getUserName());
+        cloned.setDepartmentCode(source.getDepartmentCode());
+        cloned.setDepartmentName(source.getDepartmentName());
+        cloned.setPositionCode(source.getPositionCode());
+        cloned.setPositionName(source.getPositionName());
+        return cloned;
     }
-
-
 }
-
-
-
-
-
-
-
-//@Service
-//@Transactional(readOnly = true)
-//public class UserService {
-//
-//    @Autowired
-//    private UserRepository userRepository;
-//
-//    /**
-//     * 사용자 목록 조회
-//     */
-//    public List<UserDto> getUsers(String terminalCode, String fromDate, String toDate) {
-//        List<User> users;
-//
-//        if (terminalCode != null && !terminalCode.isEmpty() && !"ALL".equals(terminalCode)) {
-//            users = userRepository.findUsersByCondition(terminalCode);
-//        } else {
-//            users = userRepository.findAllOrderedUsers();
-//        }
-//
-//        return users.stream()
-//                .map(this::convertToDto)
-//                .collect(Collectors.toList());
-//    }
-//
-//    /**
-//     * 사용자 정보 수정 (일괄)
-//     */
-//    @Transactional
-//    public void updateUsers(List<UserDto> userDtos, String updateUser, String updateIp) {
-//        for (UserDto dto : userDtos) {
-//            User user = userRepository.findByUserId(dto.getUserId())
-//                    .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다: " + dto.getUserId()));
-//
-//            // 수정 가능한 필드만 업데이트
-//            user.setUserName2(dto.getUserName2());
-//            user.setCapsId(dto.getCapsId());
-//            user.setDepartmentCode(dto.getDepartmentCode());
-//            user.setPositionCode(dto.getPositionCode());
-//            user.setUpdateDate(LocalDateTime.now());
-//            user.setUpdateUser(updateUser);
-//
-//            userRepository.save(user);
-//        }
-//    }
-//
-//    /**
-//     * 단일 사용자 정보 수정
-//     */
-//    @Transactional
-//    public UserDto updateUser(String userId, UserDto userDto, String updateUser, String updateIp) {
-//        User user = userRepository.findByUserId(userId)
-//                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다: " + userId));
-//
-//        // 수정 가능한 필드만 업데이트
-//        user.setUserName2(userDto.getUserName2());
-//        user.setCapsId(userDto.getCapsId());
-//        user.setDepartmentCode(userDto.getDepartmentCode());
-//        user.setPositionCode(userDto.getPositionCode());
-//        user.setUpdateDate(LocalDateTime.now());
-//        user.setUpdateUser(updateUser);
-//
-//        User savedUser = userRepository.save(user);
-//        return convertToDto(savedUser);
-//    }
-//
-//    /**
-//     * 사용자 삭제 (일괄)
-//     */
-//    @Transactional
-//    public void deleteUsers(List<String> userIds) {
-//        for (String userId : userIds) {
-//            User user = userRepository.findByUserId(userId)
-//                    .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다: " + userId));
-//            userRepository.delete(user);
-//        }
-//    }
-//
-//    /**
-//     * Entity를 DTO로 변환
-//     */
-//    private UserDto convertToDto(User user) {
-//        UserDto dto = new UserDto();
-//        BeanUtils.copyProperties(user, dto);
-//        return dto;
-//    }
-//
-//    /**
-//     * DTO를 Entity로 변환
-//     */
-//    private User convertToEntity(UserDto dto) {
-//        User user = new User();
-//        BeanUtils.copyProperties(dto, user);
-//        return user;
-//    }
-//}
