@@ -1,36 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   AppBar,
   Box,
   CssBaseline,
-  Drawer,
   IconButton,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Toolbar,
   Typography,
   Avatar,
-  Divider,
-  Collapse,
   Menu,
-  MenuItem
+  MenuItem,
+  ListItemIcon,
+  ListItemText
 } from '@mui/material';
 import {
-  Menu as MenuIcon,
   Settings as SettingsIcon,
-  ExpandLess,
-  ExpandMore,
   Fullscreen,
   AccountCircle,
   Edit as EditIcon,
-  Logout as LogoutIcon
+  Logout as LogoutIcon,
+  Assignment as AssignmentIcon
 } from '@mui/icons-material';
-
-const drawerWidth = 280;
+import CalendarSidebar from './CalendarSidebar';
+import FlightStatusBoard from './FlightStatusBoard';
+import headerLogo from '../assets/images/header_logo.png';
+import dayjs from 'dayjs';
+import './Layout.css';
 
 const menuItems = [
   {
@@ -38,7 +32,9 @@ const menuItems = [
     icon: <SettingsIcon />,
     children: [
       { text: '스테이션파일관리', path: '/station-files' },
-      { text: 'CAPS 사용자 관리', path: '/caps/users' }
+      { text: 'CAPS 사용자 관리', path: '/caps/users' },
+      { text: '근무현황표', path: '/work-status' },
+      { text: '운항현황판', path: '/flight-status', isFlightStatus: true }
     ]
   }
 ];
@@ -46,13 +42,13 @@ const menuItems = [
 function Layout({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(dayjs());
+  const [selectedFlight, setSelectedFlight] = useState(null);
   const [openMenus, setOpenMenus] = useState({});
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
-
-  const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
-  };
+  const [isFlightStatusOpen, setIsFlightStatusOpen] = useState(false);
+  const [flightStatusDate, setFlightStatusDate] = useState(dayjs());
+  const [isCalendarExpanded, setIsCalendarExpanded] = useState(false);
 
   const handleMenuToggle = (menuText) => {
     setOpenMenus(prev => ({
@@ -79,119 +75,157 @@ function Layout({ children }) {
     handleProfileMenuClose();
   };
 
-  const handleNavigation = (path) => {
-    navigate(path);
-    setMobileOpen(false);
+  const handleNavigation = (path, isFlightStatus = false) => {
+    if (isFlightStatus) {
+      // 운항현황판 메뉴 클릭 시 패널 열기
+      setIsFlightStatusOpen(true);
+      setFlightStatusDate(selectedDate);
+    } else {
+      // 다른 화면으로 이동 시 운항현황판 자동 접힘
+      setIsFlightStatusOpen(false);
+      navigate(path);
+    }
   };
 
-  const drawer = (
-    <Box>
-      <Box sx={{ p: 2, bgcolor: '#424242', color: 'white' }}>
-        <Typography variant="h6" component="div">
-          AACT
-        </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
-          <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
-            A
-          </Avatar>
-          <Typography variant="body2">관리자</Typography>
+  // 라우트 변경 감지하여 운항현황판 자동 접힘
+  // (직접 URL 입력이나 브라우저 뒤로가기 등으로 다른 화면으로 이동 시 자동 접힘)
+  const prevPathnameRef = React.useRef(location.pathname);
+  useEffect(() => {
+    // 경로가 변경되었고, 운항현황판이 열려있으면 접힘
+    if (prevPathnameRef.current !== location.pathname && isFlightStatusOpen) {
+      setIsFlightStatusOpen(false);
+    }
+    prevPathnameRef.current = location.pathname;
+  }, [location.pathname, isFlightStatusOpen]);
+
+  const handleDateSelect = (date) => {
+    setSelectedDate(date);
+    setSelectedFlight(null);
+    // 운항현황판이 열려있을 때만 날짜 동기화
+    if (isFlightStatusOpen) {
+      setFlightStatusDate(date);
+    }
+  };
+
+  const handleFlightStatusClose = () => {
+    setIsFlightStatusOpen(false);
+  };
+
+  const handleFlightStatusButtonClick = () => {
+    setIsFlightStatusOpen(true);
+    setFlightStatusDate(selectedDate);
+  };
+
+  const handleFlightStatusDateChange = (date) => {
+    setFlightStatusDate(date);
+    // 운항현황판 날짜 변경 시 캘린더 날짜도 동기화 (선택사항)
+    // setSelectedDate(date);
+  };
+
+  const handleFlightSelect = (flight) => {
+    setSelectedFlight(flight);
+    // 현재 경로에 따라 다르게 처리
+    if (location.pathname === '/station-files') {
+      // 스테이션 파일 화면: 이벤트를 통해 상위 컴포넌트에 전달
+      window.dispatchEvent(new CustomEvent('flightSelected', { detail: flight }));
+    } else if (location.pathname === '/work-status') {
+      // 근무현황판: 이벤트를 통해 필터링만 처리
+      window.dispatchEvent(new CustomEvent('flightSelected', { detail: flight }));
+    } else {
+      // 다른 화면: 스테이션 파일로 이동
+      navigate('/station-files', { state: { flight } });
+    }
+  };
+
+  const isActive = (path) => {
+    return location.pathname === path;
+  };
+
+  const isChildActive = (children) => {
+    return children.some(child => location.pathname === child.path);
+  };
+
+  return (
+    <Box className="layout-container">
+      <CssBaseline />
+      
+      {/* 헤더 */}
+      <AppBar 
+        position="static" 
+        className="header-container"
+        sx={{ 
+          backgroundColor: '#1E1F2A',
+          flexDirection: 'row',   
+          alignItems: 'start',       
+          justifyContent: 'space-between' 
+        }}
+      >
+        <Box className="header-logo">
+          <img src={headerLogo} alt="" height={42} width={62}/>
         </Box>
-      </Box>
-      <Divider />
-      <Box sx={{ p: 2 }}>
-        <Typography variant="subtitle2" sx={{ color: 'text.secondary', mb: 1 }}>
-          MENU
-        </Typography>
-        <List>
-          {menuItems.map((item, index) => (
-            <React.Fragment key={index}>
-              <ListItem disablePadding>
-                <ListItemButton
-                  onClick={() => item.children ? handleMenuToggle(item.text) : null}
-                  sx={{
-                    bgcolor: item.children && openMenus[item.text] ? 'action.selected' : 'transparent',
-                    '&:hover': {
-                      bgcolor: 'action.hover'
+        <Box className="header-menu-container">
+          <Box className="header-menu">
+            {menuItems.map((item, index) => {
+              const hasActiveChild = item.children && isChildActive(item.children);
+              return (
+                <Box 
+                  key={index} 
+                  className="header-menu-item"
+                  onMouseEnter={() => {
+                    if (item.children && !openMenus[item.text]) {
+                      handleMenuToggle(item.text);
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    if (item.children && openMenus[item.text]) {
+                      handleMenuToggle(item.text);
                     }
                   }}
                 >
-                  <ListItemIcon>
+                  <button
+                    className={`header-menu-button ${hasActiveChild ? 'active' : ''}`}
+                  >
                     {item.icon}
-                  </ListItemIcon>
-                  <ListItemText primary={item.text} />
-                  {item.children && (
-                    openMenus[item.text] ? <ExpandLess /> : <ExpandMore />
+                    {item.text}
+                  </button>
+                  {openMenus[item.text] && item.children && (
+                    <Box 
+                      className="header-menu-dropdown"
+                      onMouseEnter={() => {
+                        if (!openMenus[item.text]) {
+                          handleMenuToggle(item.text);
+                        }
+                      }}
+                    >
+                      {item.children.map((child, childIndex) => (
+                        <div
+                          key={childIndex}
+                          className={`header-menu-dropdown-item ${isActive(child.path) ? 'active' : ''}`}
+                          onClick={() => {
+                            handleNavigation(child.path, child.isFlightStatus);
+                          }}
+                        >
+                          {child.text}
+                        </div>
+                      ))}
+                    </Box>
                   )}
-                </ListItemButton>
-              </ListItem>
-              {item.children && (
-                <Collapse in={openMenus[item.text]} timeout="auto" unmountOnExit>
-                  <List component="div" disablePadding>
-                    {item.children.map((child, childIndex) => {
-                      const isActive = location.pathname === child.path;
-                      return (
-                        <ListItem key={childIndex} disablePadding>
-                          <ListItemButton
-                            onClick={() => handleNavigation(child.path)}
-                            sx={{
-                              pl: 4,
-                              bgcolor: isActive ? 'primary.main' : 'transparent',
-                              color: isActive ? 'white' : 'inherit',
-                              '&:hover': {
-                                bgcolor: isActive ? 'primary.dark' : 'action.hover'
-                              }
-                            }}
-                          >
-                            <ListItemText primary={child.text} />
-                          </ListItemButton>
-                        </ListItem>
-                      );
-                    })}
-                  </List>
-                </Collapse>
-              )}
-            </React.Fragment>
-          ))}
-        </List>
-      </Box>
-    </Box>
-  );
-
-  return (
-    <Box sx={{ display: 'flex' }}>
-      <CssBaseline />
-      <AppBar
-        position="fixed"
-        sx={{
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          ml: { sm: `${drawerWidth}px` },
-          bgcolor: '#1976d2'
-        }}
-      >
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: 'none' } }}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-          </Typography>
-          <IconButton color="inherit">
-            <Fullscreen />
-          </IconButton>
+                </Box>
+              );
+            })}
+          </Box>
+        </Box>
+        <Box className="header-user-container">
           <IconButton 
             color="inherit" 
+            className="header-icon-button"
             onClick={handleProfileMenuOpen}
             aria-controls={profileAnchorEl ? 'profile-menu' : undefined}
             aria-haspopup="true"
           >
             <AccountCircle />
           </IconButton>
-        </Toolbar>
+        </Box>
       </AppBar>
       
       {/* 프로필 메뉴 */}
@@ -208,6 +242,9 @@ function Layout({ children }) {
           vertical: 'top',
           horizontal: 'right',
         }}
+        sx={{
+          zIndex: 1400
+        }}
       >
         <MenuItem onClick={handleProfileEdit}>
           <ListItemIcon>
@@ -223,47 +260,43 @@ function Layout({ children }) {
         </MenuItem>
       </Menu>
       
-      <Box
-        component="nav"
-        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
-        aria-label="mailbox folders"
-      >
-        <Drawer
-          variant="temporary"
-          open={mobileOpen}
-          onClose={handleDrawerToggle}
-          ModalProps={{
-            keepMounted: true,
-          }}
-          sx={{
-            display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
-          }}
-        >
-          {drawer}
-        </Drawer>
-        <Drawer
-          variant="permanent"
-          sx={{
-            display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
-          }}
-          open
-        >
-          {drawer}
-        </Drawer>
+      {/* 컨텐츠 래퍼 (사이드바 + 메인 컨텐츠) */}
+      <Box className="layout-content-wrapper">
+        {/* 좌측 캘린더 사이드바 */}
+        <CalendarSidebar
+          selectedDate={selectedDate}
+          onDateSelect={handleDateSelect}
+          selectedFlight={selectedFlight}
+          onFlightSelect={handleFlightSelect}
+          isExpanded={isCalendarExpanded}
+          onExpandedChange={setIsCalendarExpanded}
+        />
+        
+        {/* 메인 컨텐츠 영역 */}
+        <Box className="main-content">
+          {children}
+        </Box>
       </Box>
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          p: 3,
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          mt: 8
-        }}
-      >
-        {children}
-      </Box>
+
+      {/* 운항현황판 접이식 패널 */}{/*
+      {isFlightStatusOpen ? (
+        <FlightStatusBoard
+          isOpen={isFlightStatusOpen}
+          onClose={handleFlightStatusClose}
+          selectedDate={flightStatusDate}
+          onDateChange={handleFlightStatusDateChange}
+          isCalendarExpanded={isCalendarExpanded}
+        />
+      ) : (
+        <button
+          className="flight-status-board-button"
+          onClick={handleFlightStatusButtonClick}
+          title="운항현황판 열기"
+        >
+          <span>운항현황판</span>
+        </button>
+      )}
+      */}
     </Box>
   );
 }

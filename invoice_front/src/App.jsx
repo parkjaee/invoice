@@ -5,6 +5,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import Layout from './components/Layout';
 import StationFileManagement from './components/StationFileManagement';
 import UserManagement from './caps/pages/UserManagement';
+import WorkStatus from './components/WorkStatus';
 
 const theme = createTheme({
   palette: {
@@ -27,6 +28,7 @@ function App() {
             <Route path="/" element={<Navigate to="/station-files" replace />} />
             <Route path="/station-files" element={<StationFileManagement />} />
             <Route path="/caps/users" element={<UserManagement />} />
+            <Route path="/work-status" element={<WorkStatus />} />
           </Routes>
         </Layout>
       </BrowserRouter>
