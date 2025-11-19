@@ -12,10 +12,6 @@ import {
   TableHead,
   TableRow,
   Checkbox,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Grid,
   Card,
   CardContent,
@@ -37,10 +33,9 @@ import {
   Print as PrintIcon,
   PictureAsPdf as PdfIcon
 } from '@mui/icons-material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
+import DatePicker from './common/DatePicker';
+import AirlineSelect from './common/AirlineSelect';
 import StationFileReport from './StationFileReport';
 import { usePDF } from 'react-to-pdf';
 
@@ -113,9 +108,8 @@ const mockStationFiles = [
   }
 ];
 
-// 항공사 목록
+// 항공사 목록 (공통 컴포넌트에서 "전체" 옵션 자동 포함)
 const airlines = [
-  { code: 'ALL', name: '전체' },
   { code: 'SIA', name: 'SQ항공' },
   { code: 'THA', name: 'TG항공' },
   { code: 'TWB', name: 'TW항공' },
@@ -187,9 +181,9 @@ function StationFileManagement() {
   const [showDetail, setShowDetail] = useState(false);
   const [formData, setFormData] = useState(mockStationFileDetail);
   const [selectedDate, setSelectedDate] = useState(dayjs('2023-12-29'));
-  const [selectedAirline, setSelectedAirline] = useState('ALL');
+  const [selectedAirline, setSelectedAirline] = useState('all');
   const [showReport, setShowReport] = useState(false);
-  
+
   const { toPDF, targetRef } = usePDF({
     filename: `station-file-${formData.flightNo}-${formData.flightDate}.pdf`,
     page: {
@@ -219,6 +213,25 @@ function StationFileManagement() {
     });
     setShowDetail(true);
   };
+
+  // Flight 편번 클릭 이벤트 리스너
+  React.useEffect(() => {
+    const handleFlightSelect = (event) => {
+      const flight = event.detail;
+      // 해당 편번의 스테이션 파일 찾기
+      const stationFile = stationFiles.find(
+        file => file.flight === flight.flightNo
+      );
+      if (stationFile) {
+        handleFileSelect(stationFile);
+      }
+    };
+
+    window.addEventListener('flightSelected', handleFlightSelect);
+    return () => {
+      window.removeEventListener('flightSelected', handleFlightSelect);
+    };
+  }, [stationFiles]);
 
   const handleInputChange = (field) => (event) => {
     setFormData(prev => ({
@@ -283,7 +296,7 @@ function StationFileManagement() {
   const filteredFiles = stationFiles.filter(file => {
     const matchesType = file.type === selectedType;
     const matchesDate = file.date === selectedDate.format('YYYY-MM-DD');
-    const matchesAirline = selectedAirline === 'ALL' || file.airline === selectedAirline;
+    const matchesAirline = selectedAirline === 'all' || file.airline === selectedAirline;
     
     return matchesType && matchesDate && matchesAirline;
   });
@@ -324,35 +337,19 @@ function StationFileManagement() {
             </ToggleButtonGroup>
 
             {/* 날짜 선택 */}
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <DatePicker
-                label="날짜 선택"
-                value={selectedDate}
-                onChange={(newValue) => setSelectedDate(newValue)}
-                slotProps={{
-                  textField: {
-                    size: 'small',
-                    sx: { width: 200 }
-                  }
-                }}
-              />
-            </LocalizationProvider>
+            <DatePicker
+              label="날짜 선택"
+              value={selectedDate}
+              onChange={(newValue) => setSelectedDate(newValue)}
+            />
 
             {/* 항공사 선택 */}
-            <FormControl size="small" sx={{ minWidth: 150 }}>
-              <InputLabel>항공사</InputLabel>
-              <Select
-                value={selectedAirline}
-                onChange={(e) => setSelectedAirline(e.target.value)}
-                label="항공사"
-              >
-                {airlines.map((airline) => (
-                  <MenuItem key={airline.code} value={airline.code}>
-                    {airline.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <AirlineSelect
+              value={selectedAirline}
+              onChange={(e) => setSelectedAirline(e.target.value)}
+              airlines={airlines.length > 0 ? airlines : null}
+              sx={{ minWidth: 150 }}
+            />
           </Box>
 
           {/* 테이블 */}

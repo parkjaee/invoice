@@ -1,0 +1,359 @@
+/* CalendarSidebar 컴포넌트 스타일 */
+.calendar-sidebar {
+  width: 60px;
+  height: 100%;
+  background-color: #f5f5f5;
+  border-right: 1px solid #e0e0e0;
+  transition: width 0.3s ease;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.calendar-sidebar.expanded {
+  width: 350px;
+}
+
+.calendar-sidebar-content {
+  padding: 20px;
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* 수입/수출 선택 버튼 */
+.trade-type-selector {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #e0e0e0;
+}
+
+.trade-type-button {
+  flex: 1;
+  padding: 6px 10px;
+  background-color: #ffffff;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: #666;
+  transition: all 0.2s;
+  border-right: 1px solid #e0e0e0;
+}
+
+.trade-type-button:last-child {
+  border-right: none;
+}
+
+.trade-type-button:hover {
+  background-color: #f5f5f5;
+}
+
+.trade-type-button.active {
+  background-color: #1976d2;
+  color: white;
+  font-weight: bold;
+}
+
+/* 필터 행 (터미널 및 작성 상태) */
+.filter-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.terminal-select,
+.status-select {
+  flex: 1;
+  padding: 6px 10px;
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  color: #333;
+  transition: all 0.2s;
+}
+
+.terminal-select:hover,
+.status-select:hover {
+  border-color: #1976d2;
+}
+
+.terminal-select:focus,
+.status-select:focus {
+  outline: none;
+  border-color: #1976d2;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.calendar-month {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+}
+
+.calendar-nav-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  color: #666;
+  font-size: 18px;
+  transition: color 0.2s;
+}
+
+.calendar-nav-button:hover {
+  color: #1976d2;
+}
+
+.calendar-today-button {
+  width: 100%;
+  padding: 6px;
+  background-color: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  margin-bottom: 10px;
+  transition: background-color 0.2s;
+}
+
+.calendar-today-button:hover {
+  background-color: #1565c0;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+  margin-bottom: 10px;
+}
+
+.calendar-weekday {
+  text-align: center;
+  font-size: 11px;
+  font-weight: bold;
+  color: #666;
+  padding: 3px;
+}
+
+.calendar-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 3px;
+  font-size: 12px;
+  transition: all 0.2s;
+  position: relative;
+  min-height: 24px;
+}
+
+.calendar-day:hover {
+  background-color: #e3f2fd;
+}
+
+.calendar-day.other-month {
+  color: #ccc;
+}
+
+.calendar-day.today {
+  background-color: #1976d2;
+  color: white;
+  font-weight: bold;
+}
+
+.calendar-day.selected {
+  background-color: #42a5f5;
+  color: white;
+  font-weight: bold;
+}
+
+.calendar-day.has-flights::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  background-color: #f44336;
+  border-radius: 50%;
+}
+
+.flight-list-container {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.flight-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.flight-list-title {
+  font-size: 14px;
+  font-weight: bold;
+  color: #333;
+}
+
+.flight-sort-controls {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.sort-select {
+  padding: 4px 8px;
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  color: #333;
+  transition: all 0.2s;
+}
+
+.sort-select:hover {
+  border-color: #1976d2;
+}
+
+.sort-select:focus {
+  outline: none;
+  border-color: #1976d2;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
+}
+
+.sort-order-button {
+  padding: 4px 8px;
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  color: #666;
+  transition: all 0.2s;
+  min-width: 28px;
+}
+
+.sort-order-button:hover {
+  background-color: #f5f5f5;
+  border-color: #1976d2;
+  color: #1976d2;
+}
+
+.flight-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.flight-item {
+  padding: 6px 10px;
+  background-color: #ffffff;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid #e0e0e0;
+  margin-bottom: 4px;
+}
+
+.flight-item:hover {
+  background-color: #e3f2fd;
+  border-color: #1976d2;
+}
+
+.flight-item.selected {
+  background-color: #1976d2;
+  color: white;
+  border-color: #1976d2;
+}
+
+.flight-item-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.flight-terminal {
+  font-weight: 500;
+  color: #666;
+  min-width: 25px;
+}
+
+.flight-item.selected .flight-terminal {
+  color: white;
+}
+
+.flight-separator {
+  color: #ccc;
+  font-weight: normal;
+}
+
+.flight-item.selected .flight-separator {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.flight-time {
+  color: #666;
+  min-width: 40px;
+}
+
+.flight-item.selected .flight-time {
+  color: white;
+}
+
+.flight-number {
+  font-weight: bold;
+  color: #1976d2;
+  min-width: 60px;
+}
+
+.flight-item.selected .flight-number {
+  color: white;
+}
+
+.flight-location {
+  color: #666;
+  min-width: 40px;
+}
+
+.flight-item.selected .flight-location {
+  color: white;
+}
+
+.flight-status-badge {
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: bold;
+  color: white;
+  white-space: nowrap;
+}
+
+.flight-list-empty {
+  padding: 20px;
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+}
+
