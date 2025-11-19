@@ -8,13 +8,23 @@ public class UserDto {
     private String userId;
     private String userName1;
     private String userName2;
-    private String capsId;
     private String companyCode;
     private String branchCode;
     private String departmentCode;
     private String positionCode;
+    private String companyName;
+    private String branchName;
+    private String departmentName;
+    private String positionName;
+    private String capsId;
     private String terminalCodeWork;
     private String terminalNameWork;
+    private String usableFlag;
+    private String retireFlag;
+    private String createdUserName;
+    private String createdTime;
+    private String updatedUserName;
+    private String updatedTime;
 
     // Constructors
     public UserDto() {
@@ -107,5 +117,85 @@ public class UserDto {
 
     public void setTerminalNameWork(String terminalNameWork) {
         this.terminalNameWork = terminalNameWork;
+    }
+
+    public String getCompanyName() {
+        return companyName;
+    }
+
+    public void setCompanyName(String companyName) {
+        this.companyName = companyName;
+    }
+
+    public String getBranchName() {
+        return branchName;
+    }
+
+    public void setBranchName(String branchName) {
+        this.branchName = branchName;
+    }
+
+    public String getDepartmentName() {
+        return departmentName;
+    }
+
+    public void setDepartmentName(String departmentName) {
+        this.departmentName = departmentName;
+    }
+
+    public String getPositionName() {
+        return positionName;
+    }
+
+    public void setPositionName(String positionName) {
+        this.positionName = positionName;
+    }
+
+    public String getUsableFlag() {
+        return usableFlag;
+    }
+
+    public void setUsableFlag(String usableFlag) {
+        this.usableFlag = usableFlag;
+    }
+
+    public String getRetireFlag() {
+        return retireFlag;
+    }
+
+    public void setRetireFlag(String retireFlag) {
+        this.retireFlag = retireFlag;
+    }
+
+    public String getCreatedUserName() {
+        return createdUserName;
+    }
+
+    public void setCreatedUserName(String createdUserName) {
+        this.createdUserName = createdUserName;
+    }
+
+    public String getCreatedTime() {
+        return createdTime;
+    }
+
+    public void setCreatedTime(String createdTime) {
+        this.createdTime = createdTime;
+    }
+
+    public String getUpdatedUserName() {
+        return updatedUserName;
+    }
+
+    public void setUpdatedUserName(String updatedUserName) {
+        this.updatedUserName = updatedUserName;
+    }
+
+    public String getUpdatedTime() {
+        return updatedTime;
+    }
+
+    public void setUpdatedTime(String updatedTime) {
+        this.updatedTime = updatedTime;
     }
 }
